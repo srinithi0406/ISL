@@ -194,5 +194,5 @@ if __name__ == "__main__":
     video_file = "sample1.mp4"  # Input video
     isl_sentences = video_to_isl(video_file)
 
-    #for isl in ["Computer", "I"]:
-    play_isl_sequence(['TODAY', 'NICE', 'YOU', 'LOOK'])
+    for isl in isl_sentences :
+        play_isl_sequence(isl)
