@@ -19,5 +19,7 @@ tqdm==4.67.1
 requests==2.32.5
 python-dotenv==1.2.1
 
+streamlit
+
 # NOTE:
 # FFmpeg is required but must be installed separately (system dependency)

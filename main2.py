@@ -8,8 +8,16 @@ import time
 # -----------------------------
 # Load models
 # -----------------------------
-nlp = spacy.load("en_core_web_sm")
-speech_model = whisper.load_model("base")
+import streamlit as st
+
+@st.cache_resource
+def load_models():
+    nlp = spacy.load("en_core_web_sm")
+    speech_model = whisper.load_model("base")
+    return nlp, speech_model
+
+nlp, speech_model = load_models()
+
 
 # =====================================================
 # 1. GRAMMAR-BASED ISL PIPELINE
