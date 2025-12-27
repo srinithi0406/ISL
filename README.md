@@ -16,6 +16,38 @@ This project goes beyond word-by-word translation by understanding sentence stru
 
 ---
 
+
+## 🎥 Demo & Sample Outputs
+
+### ▶️ Full Demo Video
+Watch the end-to-end working of the system here:  
+🔗 https://youtu.be/E-bwoYySqlQ
+
+---
+
+### 📥 Input Video1 (English Speech)
+This is the original input video containing spoken English used for translation.  
+🔗 [View Input Video1](assets/sample5.mp4)
+
+
+### 📤 Output Video1 (ISL Translation)
+This is the generated Indian Sign Language (ISL) video output after grammar-aware processing.  
+🔗 [View Output Video1](assets/isl_translation.mp4)
+
+---
+
+### 📥 Input Video2 (English Speech)
+This is the original input video containing spoken English used for translation.  
+🔗 [View Input Video2](assets/sample4.mp4)
+
+
+### 📤 Output Video2 (ISL Translation)
+This is the generated Indian Sign Language (ISL) video output after grammar-aware processing.  
+🔗 [View Output Video2](assets/isl_translation%20(5).mp4)
+
+---
+
+
 ## 🧠 How It Works (Pipeline)
 
 
