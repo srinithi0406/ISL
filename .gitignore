@@ -12,3 +12,8 @@ __pycache__/
 
 *.mp4
 *.wav
+
+!assets/sample4.mp4
+!assets/sample5.mp4
+!assets/isl_translation.mp4
+!assets/isl_translation (5).mp4
