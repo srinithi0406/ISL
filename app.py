@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from main2 import video_to_isl, save_isl_video
+from main import video_to_isl, save_isl_video
 
 st.set_page_config(
     page_title="Speech to ISL Translator",
