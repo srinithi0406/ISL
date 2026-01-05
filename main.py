@@ -98,7 +98,7 @@ def english_to_isl(sentence):
 
 def extract_audio_from_video(video_path, audio_path="temp_audio.wav"):
     video = VideoFileClip(video_path)
-    video.audio.write_audiofile(audio_path, logger=None)
+    video.audio.write_audiofile(audio_path, logger=None)  # type: ignore
     return audio_path
 
 
@@ -109,7 +109,7 @@ def google_speech_to_text(audio_path):
         audio = recognizer.record(source)
 
     try:
-        text = recognizer.recognize_google(audio)
+        text = recognizer.recognize_google(audio)  # type: ignore
         print("[GOOGLE STT OUTPUT]", text)
         return text
     except Exception as e:
@@ -160,7 +160,7 @@ def video_to_isl(video_path):
     audio_path = extract_audio_from_video(video_path)
     text = speech_to_text(audio_path)
 
-    doc = nlp(text)
+    doc = nlp(str(text))
     sentences = [sent.text.strip() for sent in doc.sents]
 
     print("[INFO] Sentences detected:", sentences)
@@ -173,7 +173,7 @@ def audio_to_isl(audio_path):
 
     text = speech_to_text(audio_path)
 
-    doc = nlp(text)
+    doc = nlp(str(text))
     sentences = [sent.text.strip() for sent in doc.sents]
 
     print("[INFO] Sentences detected:", sentences)

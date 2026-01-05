@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISTA | English to ISL Translation</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px 20px;
+            border: 2px solid #4CAF50;
+            background: white;
+            color: #4CAF50;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .input-section {
+            display: none;
+        }
+
+        .input-section.active {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .file-upload {
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            background: #f0f8f0;
+            border-color: #45a049;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #da190b;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .video-container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .video-container video {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+        }
+
+        .video-placeholder {
+            color: #666;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .transcript-box {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .transcript-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .transcript-content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .isl-tokens {
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.recording {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤟 VISTA</h1>
+            <p>Bridging the gap with Indian Sign Language Translation</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>📥 Input Source</h2>
+
+                <div class="mode-selector">
+                    <button class="mode-btn" data-mode="text">Text</button>
+                    <button class="mode-btn" data-mode="audio">Audio</button>
+                    <button class="mode-btn" data-mode="video">Video</button>
+                    <button class="mode-btn active" data-mode="realtime">Real-time</button>
+                </div>
+
+                <!-- Text Input -->
+                <div class="input-section" id="text-input">
+                    <textarea id="text-area" placeholder="Type your message here..."></textarea>
+                    <button class="btn btn-primary" onclick="processText()">🚀 Generate ISL Translation</button>
+                </div>
+
+                <!-- Audio Input -->
+                <div class="input-section" id="audio-input">
+                    <div class="file-upload" onclick="document.getElementById('audio-file').click()">
+                        <input type="file" id="audio-file" accept=".wav,.mp3,.m4a" onchange="handleFileSelect(this, 'audio')">
+                        <p>📁 Click to upload audio file</p>
+                        <small>Supported: WAV, MP3, M4A</small>
+                    </div>
+                    <button class="btn btn-primary" onclick="processFile('audio')" id="audio-process-btn" disabled>🚀 Generate ISL Translation</button>
+                </div>
+
+                <!-- Video Input -->
+                <div class="input-section" id="video-input">
+                    <div class="file-upload" onclick="document.getElementById('video-file').click()">
+                        <input type="file" id="video-file" accept=".mp4,.mov,.avi" onchange="handleFileSelect(this, 'video')">
+                        <p>📁 Click to upload video file</p>
+                        <small>Supported: MP4, MOV, AVI</small>
+                    </div>
+                    <button class="btn btn-primary" onclick="processFile('video')" id="video-process-btn" disabled>🚀 Generate ISL Translation</button>
+                </div>
+
+                <!-- Real-time Input -->
+                <div class="input-section active" id="realtime-input">
+                    <div class="alert alert-info">
+                        🎤 Click 'Start Recording' to begin real-time speech-to-ISL translation
+                    </div>
+                    <button class="btn btn-primary" onclick="startRealtime()" id="start-btn">🎙️ Start Recording</button>
+                    <button class="btn btn-danger" onclick="stopRealtime()" id="stop-btn" style="display:none;">⏹️ Stop Recording</button>
+                    <div id="recording-status" style="display:none; margin-top:15px; text-align:center;">
+                        <span class="status-indicator recording"></span>
+                        <strong>RECORDING IN PROGRESS...</strong>
+                        <p style="margin-top:10px; color:#666;">Speak clearly into your microphone</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="panel">
+                <h2>📺 ISL Output</h2>
+
+                <div class="video-container" id="video-output">
+                    <div class="video-placeholder">
+                        🎬 Videos will appear here
+                    </div>
+                </div>
+
+                <div class="transcript-box">
+                    <h3>📝 English Transcript</h3>
+                    <div class="transcript-content" id="transcript-content">
+                        <em>Transcript will appear here...</em>
+                    </div>
+                </div>
+
+                <div class="transcript-box isl-tokens">
+                    <h3>🔤 ISL Tokens</h3>
+                    <div class="transcript-content" id="isl-content">
+                        <em>ISL tokens will appear here...</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let isRecording = false;
+        let currentVideoQueue = [];
+        let isPlayingVideo = false;
+
+        // Mode switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show corresponding input section
+                document.querySelectorAll('.input-section').forEach(s => s.classList.remove('active'));
+                const mode = this.dataset.mode;
+                document.getElementById(`${mode}-input`).classList.add('active');
+            });
+        });
+
+        // File selection handler
+        function handleFileSelect(input, type) {
+            if (input.files.length > 0) {
+                document.getElementById(`${type}-process-btn`).disabled = false;
+            }
+        }
+
+        // Real-time translation
+        function startRealtime() {
+            fetch('/start_realtime', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        isRecording = true;
+                        document.getElementById('start-btn').style.display = 'none';
+                        document.getElementById('stop-btn').style.display = 'block';
+                        document.getElementById('recording-status').style.display = 'block';
+                        document.getElementById('transcript-content').innerHTML = '';
+                        document.getElementById('isl-content').innerHTML = '';
+                    }
+                });
+        }
+
+        function stopRealtime() {
+            fetch('/stop_realtime', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        isRecording = false;
+                        document.getElementById('start-btn').style.display = 'block';
+                        document.getElementById('stop-btn').style.display = 'none';
+                        document.getElementById('recording-status').style.display = 'none';
+                    }
+                });
+        }
+
+        // Socket.IO event handlers
+        socket.on('transcript_update', function(data) {
+            const content = document.getElementById('transcript-content');
+            content.innerHTML += data.text + ' ';
+            content.scrollTop = content.scrollHeight;
+        });
+
+        socket.on('isl_update', function(data) {
+            const content = document.getElementById('isl-content');
+            content.innerHTML += data.text + ' | ';
+            content.scrollTop = content.scrollHeight;
+        });
+
+        socket.on('video_update', function(data) {
+            currentVideoQueue.push(data);
+            if (!isPlayingVideo) {
+                playNextVideo();
+            }
+        });
+
+        function playNextVideo() {
+            if (currentVideoQueue.length === 0) {
+                isPlayingVideo = false;
+                return;
+            }
+
+            isPlayingVideo = true;
+            const videoData = currentVideoQueue.shift();
+            const container = document.getElementById('video-output');
+            
+            container.innerHTML = `
+                <div style="text-align:center; width:100%;">
+                    <video autoplay style="max-width:100%; max-height:400px; border-radius:8px;">
+                        <source src="${videoData.path}" type="video/mp4">
+                    </video>
+                    <p style="color:#4CAF50; margin-top:10px;">Playing: ${videoData.filename}</p>
+                </div>
+            `;
+
+            // Play next video after duration
+            setTimeout(() => {
+                playNextVideo();
+            }, videoData.duration * 1000);
+        }
+
+        // Text processing
+        function processText() {
+            const text = document.getElementById('text-area').value;
+            if (!text.trim()) {
+                alert('Please enter some text');
+                return;
+            }
+
+            fetch('/process_text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    displayResult(data.isl_text, data.video_path);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        // File processing
+        function processFile(type) {
+            const fileInput = document.getElementById(`${type}-file`);
+            if (fileInput.files.length === 0) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('type', type);
+
+            fetch('/process_file', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    displayResult(data.isl_text, data.video_path);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        function displayResult(islText, videoPath) {
+            document.getElementById('isl-content').innerHTML = islText;
+            document.getElementById('video-output').innerHTML = `
+                <video controls autoplay style="max-width:100%; max-height:400px; border-radius:8px;">
+                    <source src="${videoPath}" type="video/mp4">
+                </video>
+            `;
+        }
+    </script>
+</body>
+</html>

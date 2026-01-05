@@ -1,172 +1,203 @@
-import streamlit as st
+from flask import Flask, render_template, request, jsonify, send_file
+from flask_socketio import SocketIO, emit
+from werkzeug.utils import secure_filename
 import os
-import time
+import queue
+import threading
+from realtime import RealtimeTranslator
 from main import video_to_isl, audio_to_isl, text_to_isl, save_isl_video
 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['UPLOAD_FOLDER'] = 'temp'
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 
-st.set_page_config(
-    page_title="VISTA| English to ISL",
-    page_icon="🤟",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-st.markdown("""
-    <style>
-    /* Main background and font */
-    .main {
-        background-color: #f8f9fa;
-    }
+# Global translator instance
+translator = None
+translation_active = False
+
+# Ensure temp directory exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Callbacks for real-time updates
+def on_transcript_received(text):
+    """Called when new transcript is available"""
+    socketio.emit('transcript_update', {'text': text})
+    print(f"[TRANSCRIPT] Emitted: {text}")
+
+def on_isl_text_received(text):
+    """Called when new ISL text is available"""
+    socketio.emit('isl_update', {'text': text})
+    print(f"[ISL] Emitted: {text}")
+
+def video_monitor_thread():
+    """Monitor video queue and emit video paths to client"""
+    global translator, translation_active
     
-    /* Header styling */
-    .main-title {
-        font-size: 3rem !important;
-        font-weight: 800 !important;
-        color: #1E3A8A;
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
+    print("[VIDEO MONITOR] Thread started")
     
-    .sub-title {
-        font-size: 1.2rem !important;
-        color: #4B5563;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    /* Card-like container for inputs */
-    .stSecondaryBlock {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Button styling */
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        height: 3em;
-        background-color: #1E3A8A;
-        color: white;
-        font-weight: bold;
-        border: none;
-        transition: all 0.3s ease;
-    }
+    while translation_active:
+        try:
+            if translator and not translator.video_queue.empty():
+                video_path, duration = translator.video_queue.get(timeout=0.5)
+                
+                if video_path and os.path.exists(video_path):
+                    # Get relative path for web serving
+                    rel_path = os.path.relpath(video_path, os.getcwd())
+                    
+                    socketio.emit('video_update', {
+                        'path': '/' + rel_path.replace('\\', '/'),
+                        'duration': duration,
+                        'filename': os.path.basename(video_path)
+                    })
+                    print(f"[VIDEO] Emitted: {os.path.basename(video_path)}")
+        except queue.Empty:
+            continue
+        except Exception as e:
+            print(f"[ERROR] Video monitor: {e}")
     
-    .stButton>button:hover {
-        background-color: #3B82F6;
-        border: none;
-        color: white;
-        transform: translateY(-2px);
-    }
+    print("[VIDEO MONITOR] Thread stopped")
 
-    /* Success message styling */
-    .stSuccess {
-        background-color: #ecfdf5;
-        color: #065f46;
-        border-radius: 8px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+@app.route('/')
+def index():
+    """Main page"""
+    return render_template('index.html')
 
-
-os.makedirs("temp", exist_ok=True)
-
-
-st.markdown('<h1 class="main-title"> VISTA</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Bridging the gap with Indian Sign Language (ISL) Translation</p>', unsafe_allow_html=True)
-
-
-col1, col2 = st.columns([1, 1], gap="large")
-
-with col1:
-    st.subheader(" Input Source")
-    with st.container(border=True):
-        input_type = st.segmented_control(
-            "Select Translation Mode",
-            ["Video", "Audio", "Text"],
-            default="Text"
-        )
+@app.route('/start_realtime', methods=['POST'])
+def start_realtime():
+    """Start real-time translation"""
+    global translator, translation_active
+    
+    try:
+        # Create new translator instance
+        translator = RealtimeTranslator()
         
-        st.divider()
+        # Set up callbacks
+        translator.on_transcript = on_transcript_received
+        translator.on_isl_text = on_isl_text_received
+        
+        # Start translator
+        translator.start()
+        translation_active = True
+        
+        # Start video monitor thread
+        video_thread = threading.Thread(target=video_monitor_thread, daemon=True)
+        video_thread.start()
+        
+        return jsonify({'success': True, 'message': 'Real-time translation started'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-        uploaded_file = None
-        text_input = ""
+@app.route('/stop_realtime', methods=['POST'])
+def stop_realtime():
+    """Stop real-time translation"""
+    global translator, translation_active
+    
+    try:
+        translation_active = False
+        
+        if translator:
+            translator.stop()
+            translator = None
+        
+        return jsonify({'success': True, 'message': 'Real-time translation stopped'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-        if input_type == "Video":
-            uploaded_file = st.file_uploader("Upload Speech Video", type=["mp4", "mov", "avi"])
-            if uploaded_file:
-                st.info(f"File uploaded: {uploaded_file.name}")
-
-        elif input_type == "Audio":
-            uploaded_file = st.file_uploader("Upload Speech Audio", type=["wav", "mp3", "m4a"])
-            if uploaded_file:
-                st.audio(uploaded_file)
-
+@app.route('/process_text', methods=['POST'])
+def process_text():
+    """Process text input"""
+    try:
+        data = request.json
+        text = data.get('text', '')
+        
+        if not text.strip():
+            return jsonify({'success': False, 'error': 'No text provided'}), 400
+        
+        # Convert to ISL
+        isl_sentences = text_to_isl(text)
+        
+        if isl_sentences:
+            # Generate video
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'isl_translation.mp4')
+            save_isl_video(isl_sentences, output_path)
+            
+            # Get ISL tokens
+            isl_text = " | ".join([" ".join(s) for s in isl_sentences])
+            
+            return jsonify({
+                'success': True,
+                'isl_text': isl_text,
+                'video_path': '/download/isl_translation.mp4'
+            })
         else:
-            text_input = st.text_area(
-                "Type your message...",
-                placeholder="Example: How are you?",
-                height=150
-            )
-
-        process_btn = st.button("Generate ISL Translation")
-
-with col2:
-    st.subheader(" ISL Output")
+            return jsonify({'success': False, 'error': 'Translation failed'}), 500
     
-    if (uploaded_file is not None or (input_type == "Text" and text_input.strip())):
-        if process_btn:
-            
-            input_path = None
-            if input_type != "Text":
-                input_path = os.path.join("temp", uploaded_file.name)
-                with open(input_path, "wb") as f:
-                    f.write(uploaded_file.read())
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-           
-            with st.status("Converting to Indian Sign Language...", expanded=True) as status:
-                st.write("Analyzing input...")
-                
-                if input_type == "Video":
-                    isl_sentences = video_to_isl(input_path)
-                elif input_type == "Audio":
-                   isl_sentences = audio_to_isl(input_path)
-                else:
-                    isl_sentences = text_to_isl(text_input)
-                
-                if isl_sentences:
-                    st.write("Synthesizing ISL Video...")
-                    output_path = "temp/isl_translation.mp4"
-                    save_isl_video(isl_sentences, output_path)
-                    status.update(label="Translation Complete!", state="complete", expanded=False)
-                else:
-                    status.update(label="Translation Failed", state="error")
-                    st.error("Could not process the input.")
-
-            
-            if os.path.exists("temp/isl_translation.mp4"):
-                st.video("temp/isl_translation.mp4")
-                
-                with open("temp/isl_translation.mp4", "rb") as f:
-                    st.download_button(
-                        label=" Download ISL Translation",
-                        data=f,
-                        file_name="isl_translation.mp4",
-                        mime="video/mp4",
-                        use_container_width=True
-                    )
-    else:
+@app.route('/process_file', methods=['POST'])
+def process_file():
+    """Process video or audio file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
         
-        st.info("Translation will appear here once you upload/type and click 'Generate'.")
+        file = request.files['file']
+        file_type = request.form.get('type', 'audio')
         
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Process based on type
+        if file_type == 'video':
+            isl_sentences = video_to_isl(filepath)
+        else:
+            isl_sentences = audio_to_isl(filepath)
+        
+        if isl_sentences:
+            # Generate ISL video
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'isl_translation.mp4')
+            save_isl_video(isl_sentences, output_path)
+            
+            # Get ISL tokens
+            isl_text = " | ".join([" ".join(s) for s in isl_sentences])
+            
+            return jsonify({
+                'success': True,
+                'isl_text': isl_text,
+                'video_path': '/download/isl_translation.mp4'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Translation failed'}), 500
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/download/<filename>')
+def download_file(filename):
+    """Download generated ISL video"""
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    return "File not found", 404
 
+@app.route('/assets/<path:filename>')
+def serve_asset(filename):
+    """Serve asset files (ISL videos)"""
+    filepath = os.path.join('assets', filename)
+    if os.path.exists(filepath):
+        return send_file(filepath)
+    return "File not found", 404
 
-# Footer
-st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #9CA3AF;'>Powered by Team VISTA ©️ 2025</div>", 
-    unsafe_allow_html=True
-)
+if __name__ == '__main__':
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
