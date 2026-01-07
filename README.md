@@ -1,20 +1,64 @@
 #  Speech to Indian Sign Language (ISL) Translator
 
-A Streamlit-based web application that translates English speech from uploaded videos into Indian Sign Language (ISL) using a grammar-aware NLP pipeline and pre-recorded ISL sign videos.
+A **Flask-based, real-time, grammar-aware Speech-to-Indian Sign Language (ISL) translation system** that converts **English speech, audio files, video files, and live microphone input** into ISL videos using NLP-driven grammar transformation and pre-recorded ISL sign assets.
 
-This project goes beyond word-by-word translation by understanding sentence structure and reordering grammar to match **ISL syntax (Subject-Object-Verb)**.
+This project goes beyond word-by-word translation by understanding **sentence structure** and converting English grammar into **ISL-compliant Subject–Object–Verb (SOV) order**, enabling more natural and meaningful ISL output..
+
+---
+## Key Features
+
+### 1. Multi-Input Support
+- **Text Input**
+- **Audio File Upload** (`.wav`, `.mp3`)
+- **Video File Upload** (`.mp4`, `.mov`, `.avi`)
+- **Real-time Microphone Input (Live Speech)**
 
 ---
 
-##  Features
-* **Video Upload:** Support for `.mp4`, `.mov`, and `.avi` formats.
-* **Automatic Transcription:** Uses **OpenAI Whisper** for high-accuracy speech-to-text.
-* **ISL Grammar Engine:** Uses **spaCy** to transform English syntax into ISL-compliant grammar.
-* **Hybrid Rendering:** Uses word-level sign videos; falls back to letter-by-letter finger-spelling if a word is missing.
-* **Video Synthesis:** Automatically stitches sign clips into a seamless output video.
-* **Export:** Download the final ISL translation for offline use.
+### 2. Intelligent Language Processing
+- **Grammar-aware ISL translation**
+- Sentence-level parsing using **spaCy**
+- Clause detection, POS tagging, and ISL grammar reordering
+- Handles negation, time expressions and modifiers
 
 ---
+
+### 3. Speech-to-Text (Google-powered)
+- **Google Web Speech API** for:
+  - Audio file input
+  - Extracted video audio
+- **Google Streaming Speech-to-Text API** for:
+  - Real-time microphone-based speech recognition
+- Automatic punctuation enabled for better sentence segmentation
+
+---
+
+### 4. ISL Video Generation
+- Word-level ISL sign videos (if available)
+- Automatic **finger-spelling fallback** (letter-by-letter) if a word video is missing
+- Seamless stitching of ISL sign clips using MoviePy
+- Downloadable final ISL output video
+
+---
+
+### 5. Real-Time Translation Pipeline
+- Live audio converted to text **incrementally**
+- Sentence chunks pushed into a **Text Queue**
+- ISL tokens generated and pushed into a **Video Queue**
+- ISL sign videos streamed and displayed in sequence with minimal latency
+
+---
+
+### 6. Web-Based Interface
+- **Flask backend**
+- **Socket.IO (WebSockets)** for real-time updates:
+  - Live transcript
+  - ISL tokens
+  - ISL video playback
+- Responsive frontend (HTML/CSS/JS)
+
+---
+
 
 
 ## Demo & Sample Outputs
@@ -47,38 +91,54 @@ This is the generated Indian Sign Language (ISL) video output after grammar-awar
 
 ---
 
-
 ## How It Works (Pipeline)
 
+1. **Input Handling:** The system accepts text, audio files, video files, or live microphone input.
+2. **Audio Extraction:** For video inputs, audio is extracted using MoviePy.
+3. **Speech-to-Text:**  
+   - Audio and video files are transcribed using the **Google Web Speech API**.  
+   - Live microphone input is transcribed in real time using the **Google Streaming Speech-to-Text API**.
+4. **Real-Time Text Queueing:** During live speech, transcribed text is incrementally pushed into a **text queue** as the user speaks.
+5. **Sentence Segmentation:** The transcribed text is split into sentences for independent processing.
+6. **NLP Processing:** spaCy performs POS tagging, dependency parsing, and clause analysis.
+7. **ISL Grammar Mapping:** English sentences are reordered into **ISL-compliant Subject–Object–Verb (SOV)** structure.
+8. **ISL Asset Mapping:** Each ISL token is mapped to a word-level sign video, with **finger-spelling fallback** when required.
+9. **Rendering & Output:**  
+   - For text/audio/video inputs, ISL sign clips are stitched into a final output video.  
+   - For real-time input, ISL videos are queued and streamed continuously with **low latency**.
 
-
-1.  **Audio Extraction:** MoviePy extracts audio from the uploaded video.
-2.  **Speech-to-Text:** Whisper converts the audio into raw English text.
-3.  **NLP Processing:** spaCy parses the text to identify parts of speech (POS).
-4.  **Grammar Mapping:** The system reorders the text (e.g., "What is your name?" becomes "Your name what?").
-5.  **Video Stitching:** The backend searches the `assets/` folder for matching `.mp4` clips and merges them.
 
 ---
 
 ## System Architecture (High-Level)
+
 ```text
-English Speech Video
-↓
-Audio Extraction
-↓
-Speech-to-Text (Whisper)
-↓
-NLP Parsing (spaCy)
-↓
+Input Sources
+(Text / Audio / Video / Live Mic)
+        ↓
+Audio Extraction (Video only)
+        ↓
+Speech-to-Text
+- Google Web Speech API (files)
+- Google Streaming STT (real-time)
+        ↓
+Sentence Segmentation
+        ↓
+spaCy NLP Parsing
+(POS tagging, dependency parsing)
+        ↓
 ISL Grammar Reordering (SOV)
-↓
-Asset Mapping (Word / Alphabet)
-↓
-Video Stitching (MoviePy)
-↓
-Final ISL Output Video
+        ↓
+ISL Token Generation
+        ↓
+Asset Mapping
+(Word video → fallback to finger-spelling)
+        ↓
+Video Queue (Real-time)
+        ↓
+ISL Video Rendering & Playback
+
 ```
----
 
 
 ## Project Structure
@@ -104,8 +164,9 @@ ISL/
 
 ## Tech Stack
 
-- **Frontend:** Streamlit  
-- **Speech AI:** OpenAI Whisper  
+- **Frontend:** HTML/CSS/JS
+- **Backend Framework:** Flask
+- **Speech API:** Google Web Speech API, Google Streaming STT
 - **NLP:** spaCy  
 - **Video Engine:** MoviePy & OpenCV  
 - **System:** FFmpeg (for video encoding)
@@ -162,9 +223,9 @@ Once the setup is complete, launch the Streamlit interface:
 
 ```bash
 
-streamlit run app.py
+python app.py
 ```
-The application will automatically open in your browser at http://localhost:8501.
+The application will automatically open in your browser.
 
 ---
 
@@ -181,11 +242,10 @@ B.mp4
 ```
 ---
 **Future Enhancements**
-Avatar-based ISL generation (3D / pose estimation)
-Support for non-manual grammar markers
-Real-time speech-to-ISL translation
-Expanded ISL vocabulary coverage
-Mobile and low-bandwidth optimization
+- Avatar-based ISL generation (3D / pose estimation)
+- Support for non-manual grammar markers
+- Expanded ISL vocabulary coverage
+- Mobile and low-bandwidth optimization
 
 ---
 **License**
