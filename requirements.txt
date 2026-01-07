@@ -11,7 +11,7 @@ tiktoken==0.12.0
 # Video & Audio
 pyaudio
 moviepy==2.2.1
-opencv-python==4.12.0
+opencv-python==4.12.0.88
 opencv-python-headless==4.12.0.88
 imageio==2.37.2
 imageio-ffmpeg==0.6.0
