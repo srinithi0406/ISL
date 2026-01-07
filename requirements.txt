@@ -5,7 +5,7 @@ eventlet==0.36.1
 Werkzeug==3.0.4
 
 # NLP
-
+numpy==1.26.4
 google-cloud-speech
 spacy==3.7.2
 thinc==8.2.2
