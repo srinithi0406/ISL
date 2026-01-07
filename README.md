@@ -178,7 +178,7 @@ Follow these steps to get the project running on your local machine.
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/](https://github.com/)<srinithi0406/>/ISL.git
+git clone https://github.com/srinithi0406/ISL.git
 cd ISL
 ```
 **2. Set Up a Virtual Environment**
