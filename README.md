@@ -153,8 +153,10 @@ ISL/
 │
 ├── temp/                    # Directory for processed files
 │
-├── app.py                   # Streamlit frontend UI
+├── app.py                   # Flask backend & API Routes
 ├── main.py                  # Backend (NLP & Video Logic)
+├── templates/               
+│   └── index.html           # Frontend Web Dashboard
 │
 ├── requirements.txt         # Python dependencies
 ├── packages.txt             # OS-level dependencies (FFmpeg)
@@ -219,13 +221,12 @@ sudo apt install ffmpeg
 2. Extract the folder and add the bin directory to your System PATH.
 
 **Running the Application**
-Once the setup is complete, launch the Streamlit interface:
+Once the setup is complete, you can launch the Flask web server:
 
 ```bash
-
 python app.py
 ```
-The application will automatically open in your browser.
+After starting the server, manually open your web browser and navigate to `http://127.0.0.1:5000/`.
 
 ---
 

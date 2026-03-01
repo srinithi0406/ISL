@@ -165,7 +165,7 @@ def video_to_isl(video_path):
 
     print("[INFO] Sentences detected:", sentences)
 
-    return [english_to_isl(s) for s in sentences]
+    return text, [english_to_isl(s) for s in sentences]
 
 
 def audio_to_isl(audio_path):
@@ -178,7 +178,7 @@ def audio_to_isl(audio_path):
 
     print("[INFO] Sentences detected:", sentences)
 
-    return [english_to_isl(s) for s in sentences]
+    return text, [english_to_isl(s) for s in sentences]
 
 
 def text_to_isl(text):

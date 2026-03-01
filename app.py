@@ -132,6 +132,7 @@ def process_text():
             return jsonify({
                 'success': True,
                 'isl_text': isl_text,
+                'english_text': text,
                 'video_path': '/download/isl_translation.mp4'
             })
         else:
@@ -160,9 +161,9 @@ def process_file():
         
         # Process based on type
         if file_type == 'video':
-            isl_sentences = video_to_isl(filepath)
+            text, isl_sentences = video_to_isl(filepath)
         else:
-            isl_sentences = audio_to_isl(filepath)
+            text, isl_sentences = audio_to_isl(filepath)
         
         if isl_sentences:
             # Generate ISL video
@@ -175,6 +176,7 @@ def process_file():
             return jsonify({
                 'success': True,
                 'isl_text': isl_text,
+                'english_text': text,
                 'video_path': '/download/isl_translation.mp4'
             })
         else:
